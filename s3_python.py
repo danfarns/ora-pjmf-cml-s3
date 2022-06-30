@@ -14,7 +14,12 @@ spark = conn.get_spark_session()
 # Read the flights dataset. This data is in CSV format
 # and includes a header row. Spark can infer the schema
 # automatically from the data:
-flights = spark.read.csv('s3a://pjmf-ruora-bucket/pjmf-ruora-data/s3-test/flights.csv', header=True, inferSchema=True)
+S3A_AMAZON_BUCKET_FILE = ''
+
+if S3A_AMAZON_BUCKET_FILE == '':
+	raise Exception("Please update the variable [S3A_AMAZON_BUCKET_FILE] with the location of the file you want to grab from your S3 Bucket.") 
+
+flights = spark.read.csv(S3A_AMAZON_BUCKET_FILE, header=True, inferSchema=True)
 
 # The result is a Spark DataFrame named `flights`.
 # ## Inspecting Data

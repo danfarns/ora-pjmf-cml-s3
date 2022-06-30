@@ -24,10 +24,28 @@
 
 library(sparklyr)
 
+s3a_amazon_bucket <- ""
+s3a_amazon_bucket_file <- ""
+
+if (s3a_amazon_bucket == "") {
+ stop("Please enter your Amazon Bucket URI here");
+}
+
+if (s3a_amazon_bucket_file == "") {
+ stop("Please enter your S3A File URI Here");
+}
+
+
+
 # Then call `spark_connect()` to start a Spark application.
 # This example also gives the Spark application a name:
+conf <- spark_config()
 
-spark <- spark_connect(app_name = "cml-training-sparklyr")
+
+
+conf$spark.yarn.access.hadoopFileSystems<-s3a_amazon_bucket
+
+spark <- spark_connect(app_name = "cml-training-sparklyr", version="3.2.0", master="yarn-client", config=conf)
 
 # Now you can use the connection object named `spark` to
 # read data into Spark.
@@ -42,7 +60,7 @@ spark <- spark_connect(app_name = "cml-training-sparklyr")
 flights <- spark_read_csv(
   sc = spark,
   name = "nyc_flights_2013",
-  path = "s3a://pjmf-ruora-bucket/pjmf-ruora-data/s3-test/flights.csv",
+  path = s3a_amazon_bucket_file,
   header = TRUE,
   infer_schema = TRUE
 )

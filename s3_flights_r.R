@@ -22,10 +22,14 @@
 
 # Begin by loading the sparklyr package:
 
+#install.packages("sparklyr")
 library(sparklyr)
 
+spark_app_name <- "cml-training-sparklyr"
+spark_version <- "3.2.0"
 s3a_amazon_bucket <- ""
 s3a_amazon_bucket_file <- ""
+spark_table_name <- "nyc_flights_2013"
 
 if (s3a_amazon_bucket == "") {
  stop("Please enter your Amazon Bucket URI here");
@@ -41,11 +45,9 @@ if (s3a_amazon_bucket_file == "") {
 # This example also gives the Spark application a name:
 conf <- spark_config()
 
-
-
 conf$spark.yarn.access.hadoopFileSystems<-s3a_amazon_bucket
 
-spark <- spark_connect(app_name = "cml-training-sparklyr", version="3.2.0", master="yarn-client", config=conf)
+spark <- spark_connect(app_name = spark_app_name, version=spark_version, master="yarn-client", config=conf)
 
 # Now you can use the connection object named `spark` to
 # read data into Spark.
@@ -59,7 +61,7 @@ spark <- spark_connect(app_name = "cml-training-sparklyr", version="3.2.0", mast
 
 flights <- spark_read_csv(
   sc = spark,
-  name = "nyc_flights_2013",
+  name = spark_table_name,
   path = s3a_amazon_bucket_file,
   header = TRUE,
   infer_schema = TRUE
@@ -209,14 +211,18 @@ flights %>%
 # Instead of using dplyr verbs, you can use a SQL query
 # to achieve the same result:
 
-tbl(spark, sql("
+tbl(spark, sql(
+  paste0("
   SELECT origin,
     COUNT(*) AS num_departures,
     AVG(dep_delay) AS avg_dep_delay
-  FROM nyc_flights_2013
-  WHERE dest = 'SFO'
+  FROM ",
+  spark_table_name
+  , " WHERE dest = 'SFO'
   GROUP BY origin
-  ORDER BY avg_dep_delay"))
+  ORDER BY avg_dep_delay"
+  )
+))
 
 
 # ## Cleanup

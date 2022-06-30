@@ -5,36 +5,45 @@ from pyspark.sql import SparkSession
 # Then call the `getOrCreate()` method of
 # `SparkSession.builder` to start a Spark application.
 # This example also gives the Spark application a name:
-CONNECTION_NAME = "acc-rutgers"
+CONNECTION_NAME = ""
+S3A_AMAZON_BUCKET_FILE = ""
+
+if CONNECTION_NAME == "":
+	raise Exception("Please update the variable [CONNECTION_NAME] with the connection name you were given.") 
+
+if S3A_AMAZON_BUCKET_FILE == "":
+	raise Exception("Please update the variable [S3A_AMAZON_BUCKET_FILE] with the location of the file you want to grab from your S3 Bucket.") 
+
 conn = cmldata.get_connection(CONNECTION_NAME)
 spark = conn.get_spark_session()
 # Now you can use the `SparkSession` named `spark` to read
 # data into Spark.
 # ## Reading Data
-# Read the flights dataset. This data is in CSV format
+# Read the table dataset. This data is in CSV format
 # and includes a header row. Spark can infer the schema
 # automatically from the data:
-S3A_AMAZON_BUCKET_FILE = ''
 
-if S3A_AMAZON_BUCKET_FILE == '':
-	raise Exception("Please update the variable [S3A_AMAZON_BUCKET_FILE] with the location of the file you want to grab from your S3 Bucket.") 
 
-flights = spark.read.csv(S3A_AMAZON_BUCKET_FILE, header=True, inferSchema=True)
+spark_table = spark.read.csv(S3A_AMAZON_BUCKET_FILE, header=True, inferSchema=True)
 
-# The result is a Spark DataFrame named `flights`.
+# The result is a Spark DataFrame named `spark_table`.
 # ## Inspecting Data
 # Inspect the DataFrame to gain a basic understanding
 # of its structure and contents.
 # Print the number of rows:
-flights.count()
+spark_table.count()
 # Print the schema:
-flights.printSchema()
-# Inspect one or more variables (columns):
-flights.describe('arr_delay').show()
-flights.describe('arr_delay', 'dep_delay').show()
+spark_table.printSchema()
 # Print five rows:
-flights.limit(5).show()
+spark_table.limit(5).show()
 # Or more concisely:
-flights.show(5)
+spark_table.show(5)
 # Print 20 rows (the default number is 20):
-flights.show()
+spark_table.show()
+
+
+# ## Cleanup
+
+# Stop the Spark application:
+
+spark.stop()

@@ -11,21 +11,22 @@ This repository is used to store sample code in Python and R on how to connect t
     * **Machine Learning Workspace**: ML Workspace
 
 # Requirements
-* (Reword or Clarify Statement) The ability to add the correct permissions or receive the correct permissions from your administrator
-    * (Get Picture|Clarify Statement) Environment -> Manage Access -> IDBroker Mappings (tab) -> Edit (Current Mappings) -> Add ur username (<ur_user>) -> and use the same role as “Data Access Role”
-     * SELF NOTE: How to check if the current permissions are sufficient????
-* (This being the runtimes) Either the Python Environment Runtimes or R Envionment Runtimes
+* (Clarify_Statement) The ability to add the correct permissions or receive the correct permissions from your administrator
+    * (Get_Picture|Cannot_Get_Picture|Clarify_Statement|Check_Hazem) Environment -> Manage Access -> IDBroker Mappings (tab) -> Edit (Current Mappings) -> Add your username (<your_user>) -> and use the same role as “Data Access Role” 
+     * (Check_Hazem): How to check if the current permissions are sufficient????
+* The ability to create ML Workspaces with either the Python Environment Runtimes or R Envionment Runtimes
 
 # CDP On-Boarding
-((?? Do I need this section ??))
+((Check_Hazem?? Do I need this section ??))
 
 # Checking Permissions
-((?? What permissions do I need to check for ??))
+((Check_Hazem?? What permissions do I need to check for ??))
+
 ## AWS Permission for File Uploading
-((?? What should happen if I don't have permissions? I assume I just can't see this page or be able to upload anything; or the upload button will be disabled ??))
+((Check_Hazem?? What should happen if I don't have permissions? I assume I just can't see this page or be able to upload anything; or the upload button will be disabled ??))
 
 ## CDP for File Access Privileges
-((?? What settings in CDP may need to be set? 
+((Check_Hazem ?? What settings in CDP may need to be set? 
 ```
 so go to ur environment -> Manage Access -> IDBroker Mappings (tab) -> Edit (Current Mappings) -> Add ur username (<ur_user>) -> and use the same role as “Data Access Role” (edited) 
 
@@ -42,7 +43,7 @@ You will need to be logged into your Amazon AWS Account to follow these instruct
         - In this guide, our bucket is named `pjmf-ruora-bucket`. You will need to follow along using your CDP accessible bucket name or ask your administrator for the appropriate bucket to place data for CDP in.
 1. You should be looking at your S3 Buckets, if not click on "Buckets" in the left side panel near the top.
 1. Click the name of the bucket you want to put your data into for CDP to access.
-1. From here, your screen should now be similar to the following: ((PICTURE HERE: s3-bucket-helper-image-1))
+1. From here, your screen should now be similar to the following: ![Similar Bucket Screen](images/s3-bucket-helper-image-1.png)
 1. (Optional) Create a new folder to store your data in.
     - While this is an optional step, this is a good practice to keep your data orderly as well as minimize interfering with existing data and other collaborators.
     - In this guide, the folder's name will be `s3-data-folder`
@@ -60,7 +61,7 @@ You will need to be logged into your Amazon AWS Account to follow these instruct
 1. After clicking "Close" your file should now appear in the list.
     - We will need to reference this folder and files, so keep a note where these files are or how to navigate back to these files through the web browser as it will be important in later sections of this guide.
 1. If you are following this guide, to get the S3 URI for your [flights.csv](data/flights.csv) file that you just uploaded, click on "flights.csv" in the list.
-1. On the right hand side should be an "S3 URI" link (`s3://your-bucket-name-here/.../flights.csv`). Copy this link somewhere or remember how to get back to this, since we will need it in a later section.
+1. On the right hand side should be an "S3 URI" link (`s3://your-bucket-name-here/.../flights.csv`). Copy this link somewhere or remember how to get back to this, since we will need it in a later section. ![S3 URI Location](images/s3-bucket-helper-image-2.png)
 
 
 # Provisioning / Starting Your ML Workspace
@@ -109,7 +110,7 @@ If you are following this guide exactly, we will be pulling this GitHub reposito
     1. Select the following options from the dropdown and press "Add Runtime":
       1. Workbench - Python 3.7 - Standard
       1. Workbench - R 4.1 - Standard
-    1. Your Runtime setup should look like this if you are following the guide exactly: ((PICTURE HERE: s3-new-project-runtimes-1))
+    1. Your Runtime setup should look like this if you are following the guide exactly: ![Runtime Setup Image](images/new-project-runtimes-1.png)
 1. Press "Create Project"
     - The ML Workspace will automatically pull this repository's code into a project for you.
 1. There should now be a "New Session" button near the top right. If there is not a "New Session" button, you will need to navigate to the new project's dashboard or click "Sessions" on the left side menu.
@@ -221,10 +222,37 @@ If you run into other problems and come across fixes for them, please leave me a
 
 
 ## Writing To S3 Buckets
-NYI
+This section will contain the instructions to write from spark to a csv on your s3 bucket. This section does not deviate much from the `Reading From S3 Buckets` Section.  
+
+The only thing of note is that any direct output from spark in both Python and R will create a new folder on your S3 bucket where you state and put multiple CSVs instead of just the expected one. You will need to follow the next section to combine the CSVs to your local system. 
+
+### Minor Notes
+While there is a way to output only one CSV file (in Python with the .coalesce(1) function on a data frame), it may cause you to have memory issues, however I did not try this myself.
+
 ### Python Specific Instructions
-NYI
+Follow the same steps above to run the sample code, except you will use the file `s3_write.py` instead of `s3_flights_python.py`.
+- After the file `s3_write.py` has been run, check into your s3 bucket where your example input was. If you already on the page where your data was being written to, you may need to press the refresh button on the page or refresh the webpage itself through your browser.
+
+### Python Troubleshooting
+I didn't run into too many specific problems that weren't discussed in the reading section, however if you have a problem and you found a solution, please create an issue so I can add it to the troubleshooting section.
+1. AnalysisException: path s3a://.../your_output_directory already exists.
+    - See https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.csv.html for setting the mode
+        - Example to overwrite the directory: `flights.write.csv("{0}_output_python".format(S3A_AMAZON_BUCKET_FILE), header=True, mode="overwrite")`
+
 ### R Specific Instructions
+Follow the same steps above to run the sample code, except you will use the file `s3_write.R` instead of `s3_flights_r.R`. 
+
+### R Troubleshooting
+I didn't run into too many specific problems that weren't discussed in the reading section, however if you have a problem and you found a solution, please create an issue so I can add it to the troubleshooting section.
+1. Error: org.apache.spark.sql.AnalysisException: path s3a://.../your_output_directory already exists.
+    - See https://cran.r-project.org/web/packages/sparklyr/sparklyr.pdf for setting the mode
+        - Example to overwrite the directory: `spark_write_csv(spark_table, paste0(s3a_amazon_bucket_file, "_output_R"), mode="overwrite")`
+
+
+## Reading from S3 to your local computer
+### Setup for both programming languages
 NYI
-### Troubleshooting / Errors   
+### Python Instructions
+NYI
+### R Instructions
 NYI

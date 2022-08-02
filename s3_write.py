@@ -18,30 +18,14 @@ spark = conn.get_spark_session()
 # Now you can use the `SparkSession` named `spark` to read
 # data into Spark.
 # ## Reading Data
-# Read the table dataset. This data is in CSV format
+# Read the flights dataset. This data is in CSV format
 # and includes a header row. Spark can infer the schema
 # automatically from the data:
+flights = spark.read.csv(S3A_AMAZON_BUCKET_FILE, header=True, inferSchema=True)
 
 
-spark_table = spark.read.csv(S3A_AMAZON_BUCKET_FILE, header=True, inferSchema=True)
-
-# The result is a Spark DataFrame named `spark_table`.
-# ## Inspecting Data
-# Inspect the DataFrame to gain a basic understanding
-# of its structure and contents.
-# Print the number of rows:
-spark_table.count()
-# Print the schema:
-spark_table.printSchema()
-# Print five rows:
-spark_table.limit(5).show()
-# Or more concisely:
-spark_table.show(5)
-# Print 20 rows (the default number is 20):
-spark_table.show()
-
-#Output to s3 bucket.
-spark_table.write.csv("{0}_output_python".format(S3A_AMAZON_BUCKET_FILE), header=True)
+flights.write.csv("{0}_output_python".format(S3A_AMAZON_BUCKET_FILE), header=True)
+#flights.write.csv("{0}_output_python".format(S3A_AMAZON_BUCKET_FILE), header=True, mode="overwrite")
 
 # ## Cleanup
 

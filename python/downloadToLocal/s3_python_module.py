@@ -109,7 +109,7 @@ s3KeyPrefix : str
 localDirectory : str
 	the local-to-your-computer location you want to combine your CSVs
 outputName : str
-	The name of the file 
+	The name of the file. do not append ".csv", we'll do that.
 options : dict
 	Passing in "None" will use default values
 	hasHeader: boolean
@@ -134,9 +134,9 @@ options : dict
 
 
 	#Is local folder writable?
-	with open(os.path.join(localDirectory, outputName), 'wb') as touchedFile:
+	with open(os.path.join(localDirectory, "{0}.csv".format(outputName)), 'wb') as touchedFile:
 		if not touchedFile.writable():
-			printOut("Local file location was not writable. Is this correct? [Directory: `{0}`, Filename: `{1}`]".format(localDirectory, outputName))
+			printOut("Local file location was not writable. Is this correct? [Directory: `{0}`, Filename: `{1}`]".format(localDirectory, "{0}.csv".format(outputName)))
 			return False
 		
 
@@ -186,7 +186,7 @@ options : dict
 		hasHeader = options['hasHeader']
 
 	#Newline to empty is necessary so files get output properly.
-	with open(os.path.join(localDirectory, outputName), 'w', newline='') as singleCsvFile:
+	with open(os.path.join(localDirectory, "{0}.csv".format(outputName)), 'w', newline='') as singleCsvFile:
 		myCsvWriter = csv.writer(singleCsvFile)
 
 		for csvFileKey in Csv_Files:
@@ -205,7 +205,7 @@ options : dict
 							#New file, so new header
 							OutputHeader=myDownloadedRow
 							myCsvWriter.writerow(myDownloadedRow)
-						else:
+						elif checkSameHeader:
 							if OutputHeader != myDownloadedRow:
 								printOut("Headers did not align. Expected [{0}], Got: [{1}]".format(OutputHeader.join(','), myDownloadedRow.join(',')))
 								return False
@@ -219,14 +219,138 @@ options : dict
 	if os.path.exists(TEMP_FILE):
 		os.remove(TEMP_FILE)
 
-	printOut("Single CSV output should be located: [{0}].".format(os.path.join(localDirectory, outputName)))
+	printOut("Single CSV output should be located: [{0}].".format(os.path.join(localDirectory, "{0}.csv".format(outputName))))
 
 	return True
 
-def OutputAsMultipleCSV(s3aBucketLocation, localDirectory, outputName):
+def OutputAsMultipleCSV(s3BucketName, s3KeyPrefix, localDirectory, outputName, options={'hasHeader':False, 'checkSameHeader':True}):
+	"""OutputAsMultipleCSV
+	
+This function will simply throw an error if it detects a non-same header.
+
+Attributes
+----------
+s3BucketName : str
+	The name of the bucket your data is in
+s3KeyPrefix : str
+	An s3a Accessible directory/folder location that contains all of the CSVs you want to compile.
+	If your full URI string is s3a://YOUR-BUCKET/Folder1/folder2/myData/, s3KeyPrefix would be "Folder1/folder2/myData/".
+	This folder should contain a "_SUCCESS" typically and a bunch of part-xxxxx-UUID.csv(s)
+localDirectory : str
+	the local-to-your-computer location you want to combine your CSVs
+outputName : str
+	The name of the file. File output will be `{outputName}-{csvNumber}.csv`. Do not append ".csv", we'll take care of that.
+options : dict
+	Passing in "None" will use default values
+	hasHeader: boolean
+		default: false
+		If your csvs have a header, they should all be the same header
+	checkSameHeader: boolean
+		default: true
+		This option comes into affect if hasHeader is true. this will throw an error if a CSV that was downloaded has a different header than the previous files.
+
+"""
+
+####
+
+	if options is None:
+		options={'hasHeader':False, 'checkSameHeader':True}
+	
+
+	printOut("Outputting as multiple CSV files...")
+
 	if not S3_READY_FOR_USE:
+		printOut("S3 Wasn't ready for use yet. Initializing Environment.")
 		InitializeAwsS3EnvironmentVariables()
-	return
+
+
+	#Is local folder writable?
+	with open(os.path.join(localDirectory, outputName), 'wb') as touchedFile:
+		if not touchedFile.writable():
+			printOut("Local file location was not writable. Is this correct? [Directory: `{0}`, Filename: `{1}`]".format(localDirectory, outputName))
+			return False
+
+	
+	if os.path.exists(os.path.join(localDirectory, outputName)):
+		os.remove(os.path.join(localDirectory, outputName))
+		
+
+	#See if folder exists
+	s3 = boto3.client('s3')
+
+	CSV_List = s3.list_objects(Bucket = s3BucketName, Prefix=s3KeyPrefix)
+
+	Csv_Success_Found=False
+	Csv_Files = []
+
+	for CSVFileObject in CSV_List.get('Contents'):
+		#example of "o": {'Key': 's3-data-folder/flights.csv_output_python/part-00001-9e0062be-fea8-4343-b22e-66981b5a7091-c000.csv', 'LastModified': datetime.datetime(2022, 8, 2, 18, 7, 50, tzinfo=tzutc()), 'ETag': '"e9a3e06b71f4b160ff8885d4e67f03b4"', 'Size': 14006699, 'StorageClass': 'STANDARD', 'Owner': {'DisplayName': 'aws-root-0000144', 'ID': '05c7f77fb66cfaa5b23d1935c94e32d17ea317a5f4eeb794578ce723171b7e3c'}}
+		#data = s3.get_object(Bucket=bucket, Key=o.get('Key'))
+		#printOut(CSVFileObject)
+		csvFilename = os.path.basename( CSVFileObject.get('Key') )
+		#printOut(csvFilename)
+		if csvFilename == '_SUCCESS':
+			Csv_Success_Found=True
+		elif csvFilename.endswith('.csv'):
+			Csv_Files.append(CSVFileObject.get('Key'))
+		else:
+			printOut("> Unknown file: `{0}`".format( csvFilename ) )
+			continue
+
+	if not Csv_Success_Found:
+		printOut("Could not find a file named `_SUCCESS`. This file should appear if pyspark/sparklyr has output the data successfully. Ending program.")
+		return False
+	
+	if len(Csv_Files) == 0:
+		printOut("Did not find any CSVs in this folder. Is this the correct folder? [s3a://{0}/{0}] Ending program.".format(s3BucketName, s3KeyPrefix))
+		return False
+
+
+	
+
+	printOut("Starting CSV Downloads...")
+
+	hasHeader=False
+	OutputHeader=None
+
+	checkSameHeader=True
+
+	if 'hasHeader' in options:
+		hasHeader = options['hasHeader']
+
+
+	for csvIdx, csvFileKey in enumerate(Csv_Files):
+		DOWNLOAD_FILE_LOCATION = os.path.join(localDirectory, "{0}-{1}.csv".format(outputName, csvIdx) )
+		#start downloading files
+		with open(DOWNLOAD_FILE_LOCATION, 'wb') as downloadingFile:
+			s3.download_fileobj(s3BucketName,csvFileKey, downloadingFile)
+		
+		#New file is downloaded. start writing to the combined file.
+		with open(DOWNLOAD_FILE_LOCATION, 'r') as downloadedFile:
+			downloadedCsvReader = csv.reader(downloadedFile)
+			myDownloadedRow = next(downloadedCsvReader)
+			if hasHeader:
+				#Should only enter here on the first row of a new file if we have headers
+				if OutputHeader is None:
+					#New file, so new header
+					OutputHeader=myDownloadedRow
+				elif checkSameHeader:
+					if OutputHeader != myDownloadedRow:
+						printOut("Headers did not align with the first downloaded csv. File: [{0}], Expected [{1}], Got: [{2}]".format(DOWNLOAD_FILE_LOCATION, OutputHeader.join(','), myDownloadedRow.join(',')))
+
+
+
+
+
+
+
+
+
+
+
+
+
+	return True
 	
 def InsertIntoArcGisTable(s3aBucketLocation, localDirectory, outputName):
 	if not S3_READY_FOR_USE:

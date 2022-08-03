@@ -11,6 +11,13 @@ __ARCPY_IMPORTED = False
 S3_READY_FOR_USE = False
 
 try:
+	import arcpy
+	__ARCPY_IMPORTED = True
+except ImportError:
+	print("ArcPY was not found so it was not imported")
+	pass
+
+try:
 	import s3_python_environment
 	__USER_ENVIRONMENT_IMPORTED = True
 except ImportError:
@@ -66,7 +73,15 @@ def InitializeAwsS3EnvironmentVariables():
 
 	printOut("Initialized S3 Environment variables.")
 	#printOut(os.environ)
-	return
+	return True
+def InitializeAwsS3EnvironmentVariablesManually(AWS_ACCESS_KEY_ID=None, AWS_SECRET_ACCESS_KEY=None, toArcpy=False):
+	global S3_READY_FOR_USE
+	os.environ[ 'AWS_ACCESS_KEY_ID' ]= AWS_ACCESS_KEY_ID
+	os.environ[ 'AWS_SECRET_ACCESS_KEY' ]= AWS_SECRET_ACCESS_KEY
+	printOut("Manually initialized S3 Environment variables.", toArcpy)
+
+	S3_READY_FOR_USE=True
+	return True	
 
 def GetOutputInformation():
 	OutputInformationObj = OutputInformation()
@@ -74,29 +89,35 @@ def GetOutputInformation():
 		OutputInformationObj.ExtractEnvironmentVariables(s3_python_environment.OUTPUT_INFORMATION)
 	else:
 		OutputInformationObj.ExtractEnvironmentVariables(s3_default_python_environment.OUTPUT_INFORMATION)
-	
-
 
 	return OutputInformationObj
 
 
 def printOut(message="No message given.", toArcpy=False ):
+	
 	if toArcpy and __ARCPY_IMPORTED:
 		arcpy.AddMessage(message)
 	else:
 		print(message)
 
-def requireArcPy():
-	global __ARCPY_IMPORTED
-	import arcpy
-	__ARCPY_IMPORTED=True
-	return
+# def requireArcPy():
+# 	global __ARCPY_IMPORTED
+# 	try:
+# 		import arcpy
+# 		__ARCPY_IMPORTED=True
+# 		printOut("ArcPy Imported successfully.")
+# 	except ImportError:
+# 		printOut("ArcPy module was not found.")
+# 		return False
+	
+
+# 	return True
 
 
 
 ####OUTPUT FUNCTIONS
 
-def OutputAsSingleCSV(s3BucketName, s3KeyPrefix, localDirectory, outputName, options={'hasHeader':False, 'checkSameHeader':True}):
+def OutputAsSingleCSV(s3BucketName, s3KeyPrefix, localDirectory, outputName, options={'hasHeader':False, 'checkSameHeader':True, 'printToArcpy':False}):
 	"""OutputAsSingleCSV
 Attributes
 ----------
@@ -123,20 +144,37 @@ options : dict
 ####
 
 	if options is None:
-		options={'hasHeader':False, 'checkSameHeader':True}
+		options={'hasHeader':False, 'checkSameHeader':True, 'printToArcpy':False}
 	
+	
+	hasHeader=False
+	OutputHeader=None
 
-	printOut("Outputting as a Single CSV file...")
+	checkSameHeader=True
+	
+	printToArcpy=False
+
+	TEMP_FILE = os.path.join(localDirectory, "tempfile.csv")
+
+	if 'hasHeader' in options:
+		hasHeader = options['hasHeader']
+		if 'checkSameHeader' in options:
+			checkSameHeader = options['checkSameHeader']
+
+	if 'printToArcpy' in options:
+		printToArcpy = options['printToArcpy']
+
+	printOut("Downloading from S3 as a Single CSV file...", printToArcpy)
 
 	if not S3_READY_FOR_USE:
-		printOut("S3 Wasn't ready for use yet. Initializing Environment.")
+		printOut("S3 Wasn't ready for use yet. Initializing Environment.", printToArcpy)
 		InitializeAwsS3EnvironmentVariables()
 
 
 	#Is local folder writable?
 	with open(os.path.join(localDirectory, "{0}.csv".format(outputName)), 'wb') as touchedFile:
 		if not touchedFile.writable():
-			printOut("Local file location was not writable. Is this correct? [Directory: `{0}`, Filename: `{1}`]".format(localDirectory, "{0}.csv".format(outputName)))
+			printOut("Local file location was not writable. Is this correct? [Directory: `{0}`, Filename: `{1}`]".format(localDirectory, "{0}.csv".format(outputName)), printToArcpy)
 			return False
 		
 
@@ -159,31 +197,23 @@ options : dict
 		elif csvFilename.endswith('.csv'):
 			Csv_Files.append(CSVFileObject.get('Key'))
 		else:
-			printOut("> Unknown file: `{0}`".format( csvFilename ) )
+			printOut("> Unknown file: `{0}`".format( csvFilename ) , printToArcpy)
 			continue
 
 	if not Csv_Success_Found:
-		printOut("Could not find a file named `_SUCCESS`. This file should appear if pyspark/sparklyr has output the data successfully. Ending program.")
+		printOut("Could not find a file named `_SUCCESS`. This file should appear if pyspark/sparklyr has output the data successfully. Ending program.", printToArcpy)
 		return False
 	
 	if len(Csv_Files) == 0:
-		printOut("Did not find any CSVs in this folder. Is this the correct folder? [s3a://{0}/{0}] Ending program.".format(s3BucketName, s3KeyPrefix))
+		printOut("Did not find any CSVs in this folder. Is this the correct folder? [s3a://{0}/{0}] Ending program.".format(s3BucketName, s3KeyPrefix), printToArcpy)
 		return False
 
 
 	
 
-	printOut("Starting CSV Downloads...")
+	printOut("Starting CSV Downloads...", printToArcpy)
 
-	hasHeader=False
-	OutputHeader=None
-
-	checkSameHeader=True
-
-	TEMP_FILE = os.path.join(localDirectory, "tempfile.csv")
-
-	if 'hasHeader' in options:
-		hasHeader = options['hasHeader']
+	
 
 	#Newline to empty is necessary so files get output properly.
 	with open(os.path.join(localDirectory, "{0}.csv".format(outputName)), 'w', newline='') as singleCsvFile:
@@ -207,7 +237,7 @@ options : dict
 							myCsvWriter.writerow(myDownloadedRow)
 						elif checkSameHeader:
 							if OutputHeader != myDownloadedRow:
-								printOut("Headers did not align. Expected [{0}], Got: [{1}]".format(OutputHeader.join(','), myDownloadedRow.join(',')))
+								printOut("Headers did not align. Expected [{0}], Got: [{1}]".format(OutputHeader.join(','), myDownloadedRow.join(',')), printToArcpy)
 								return False
 						readHeader=True
 					else:
@@ -219,7 +249,7 @@ options : dict
 	if os.path.exists(TEMP_FILE):
 		os.remove(TEMP_FILE)
 
-	printOut("Single CSV output should be located: [{0}].".format(os.path.join(localDirectory, "{0}.csv".format(outputName))))
+	printOut("Single CSV output should be located: [{0}].".format(os.path.join(localDirectory, "{0}.csv".format(outputName))), printToArcpy)
 
 	return True
 
@@ -336,14 +366,17 @@ options : dict
 					OutputHeader=myDownloadedRow
 				elif checkSameHeader:
 					if OutputHeader != myDownloadedRow:
-						printOut("Headers did not align with the first downloaded csv. File: [{0}], Expected [{1}], Got: [{2}]".format(DOWNLOAD_FILE_LOCATION, OutputHeader.join(','), myDownloadedRow.join(',')))
+						printOut("(WARNING ONLY) Headers did not align with the first downloaded csv. File: [{0}], Expected [{1}], Got: [{2}]".format(DOWNLOAD_FILE_LOCATION, OutputHeader.join(','), myDownloadedRow.join(',')))
 
+	return True
+	
+def InsertIntoArcGisTable(s3aBucketLocation, s3KeyPrefix, localDirectory, outputName):
+	if not S3_READY_FOR_USE:
+		InitializeAwsS3EnvironmentVariables()
 
-
-
-
-
-
+	if not __ARCPY_IMPORTED:
+		printOut("We could not import the arcpy module for ArcGIS processing. Please make sure you have arcpy installed or are using the correct Python Environment.")
+		return False
 
 
 
@@ -351,11 +384,6 @@ options : dict
 
 
 	return True
-	
-def InsertIntoArcGisTable(s3aBucketLocation, localDirectory, outputName):
-	if not S3_READY_FOR_USE:
-		InitializeAwsS3EnvironmentVariables()
-	return
 	
 def InsertIntoMySQLTable(s3aBucketLocation):
 	if not S3_READY_FOR_USE:

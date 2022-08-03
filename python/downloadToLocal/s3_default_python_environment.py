@@ -1,5 +1,8 @@
 import constants
 # constants.TYPE: Output type. Please see constants file for available output types
+#To create your own environment, copy this file to `s3_python_environment.py`. 
+# Make sure to add the `s3_python_environment.py` file to your .gitignore if you haven't already
+#NOTICE: If you are running specifically from ArcPro via the toolbox, this and `s3_python_environment` will be ignored.
 
 AWS_CONNECTION_INFO = {
 	'AWS_ACCESS_KEY_ID': "", 

@@ -36,6 +36,15 @@ if OUTPUT_INFORMATION.AUTOMATIC_OUTPUT:
 			OUTPUT_INFORMATION.OUTPUT_CONFIG.OUTPUT_FILENAME,
 			OUTPUT_INFORMATION.OUTPUT_CONFIG.OTHER_OPTIONS
 		)
+	elif OUTPUT_INFORMATION.OUTPUT_CONFIG.TYPE == constants.TYPE.ARCGIS_TABLE:
+
+		# Output_Success=s3_python_module.InsertIntoArcGisTable(
+		# 	OUTPUT_INFORMATION.OUTPUT_CONFIG.S3_BUCKET_NAME, 
+		# 	OUTPUT_INFORMATION.OUTPUT_CONFIG.S3_KEY_PREFIX,
+		# 	OUTPUT_INFORMATION.OUTPUT_CONFIG.OUTPUT_DIRECTORY,
+		# 	OUTPUT_INFORMATION.OUTPUT_CONFIG.OUTPUT_FILENAME
+		# )
+		pass
 	else:
 		s3_python_module.printOut("Unknown Automatic output type.")
 		sys.exit("Please check [constants.py] for available output types or type may not be implemented yet for automatic output.")

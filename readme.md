@@ -251,8 +251,24 @@ I didn't run into too many specific problems that weren't discussed in the readi
 
 ## Reading from S3 to your local computer
 ### Setup for both programming languages
-NYI
+You will need to be logged into your Amazon AWS Account to follow these instructions. If you do not know the URL to log in, please ask your administrator for help.
+
+1. Navigate to your Identity and Access Management (IAM) Dashboard
+    - If you are having trouble, you can press <kbd>Alt</kbd>+<kbd>S</kbd> or click on the search bar at the top and type `IAM`.
+1. Click on "Users" on the left side.
+1. If you are unable to view this screen or have other problems, please as your administrator.
+1. Find *YOUR* username and click on the name.
+1. Under the Summary section for your user, click the "Security Credentials" tab.
+1. Click "Create Access Key"
+    1. NOTE: If your "Create Access Key" button is grayed out and you're allowed to create keys, you may have hit the Access Key limit (which was 2 for me)
+1. Make a secure note of these items and read the warning prompt on the popup window since we will need these keys in the next sections.
+
 ### Python Instructions
+#### Required Packages
+* boto3 (https://docs.cloudera.com/machine-learning/cloud/import-data/topics/ml-accessing-data-in-amazon-s3-buckets.html, https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html#configuration)
+
+
+#### ArcGIS Subsection
 NYI
 ### R Instructions
 NYI

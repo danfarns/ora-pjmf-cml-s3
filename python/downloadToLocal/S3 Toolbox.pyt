@@ -26,7 +26,7 @@ class S3ToArcTable(object):
         """S3 to Arc Table allows a user to download directly from ArcPro."""
         self.label = "S3 To ArcGIS Data Table"
         self.description = "Allows a user to grab data from their Amazon S3 bucket and add it to the current ArcPro map. This will use a temporary directory to download a single CSV to and place it into your selected output area."
-        self.canRunInBackground = True
+        self.canRunInBackground = False
 
     def getParameterInfo(self):
         """Define parameter definitions"""
@@ -153,8 +153,10 @@ class S3ToArcTable(object):
             try:
                 CURRENT_MAP = arcpy.mp.ArcGISProject("CURRENT")
                 NEW_TABLE = arcpy.mp.Table(ExportLocation)
-                mapList = CURRENT_MAP.listMaps()[0]
-                mapList.addTable(NEW_TABLE)
+                mapList = CURRENT_MAP.listMaps()
+                if len(mapList) > 0:
+                    myMap = mapList[0]
+                    myMap.addTable(NEW_TABLE)
                     
             except RuntimeError:
 

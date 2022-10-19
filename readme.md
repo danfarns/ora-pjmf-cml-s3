@@ -264,11 +264,47 @@ You will need to be logged into your Amazon AWS Account to follow these instruct
 1. Make a secure note of these items and read the warning prompt on the popup window since we will need these keys in the next sections.
 
 ### Python Instructions
+Please use files in the [python/downloadToLocal](python/downloadToLocal) folder.
+
 #### Required Packages
 * boto3 (https://docs.cloudera.com/machine-learning/cloud/import-data/topics/ml-accessing-data-in-amazon-s3-buckets.html, https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html#configuration)
 
+#### Setting up Automatic Output configuration
+There is a file called [s3_default_python_environment.py](python/downloadToLocal/s3_default_python_environment.py) that will be used as your starting template. 
+1. Copy this file into the same directory, giving it the name `s3_python_environment.py`.
+    1. If using a Git/SVN storage solution for your code, you should add this new file, `s3_python_environment.py`, to your .gitignore list.
+1. You will need to fill this file out appropriate to your security credentials that you created from the previous "Setup" section.
+1. AWS_CONNECTION_INFO
+    1. You will need to fill your access key, secret access key, and region here.
+1. OUTPUT_INFORMATION
+    1. AUTOMATIC_OUTPUT
+        1. If you would like to code your own way of outputting, please set this to `False`, otherwise, leaving it true will let the program use the next set of parameters.
+    1. OUTPUT_CONFIG
+        1. TYPE - This will let the automatic outputter know what format you would like to grab your data in.
+            1. constants.TYPE.SINGLE_FILE_CSV: Outputs your sepecified data to a single CSV.
+            1. constants.TYPE.MULTI_FILE_CSV: Outputs your data as-is from the bucket.
+            1. constants.TYPE.ARCGIS_TABLE: Not used from the python command line and will be ignored.
+            1. constants.TYPE.MYSQL_TABLE: NOT_YET_IMPLEMENTED
+        1. S3_BUCKET_NAME - The bucket you would like to access data from. This was created from a previous section or given to you by an administrator.
+        1. S3_KEY_PREFIX - The relative path inside if the bucket. While we could combine this field and S3_BUCKET_NAME to form a complete path, I have currently opted to keep it separate for consistancy's sake.
+        1. OUTPUT_DIRECTORY - The output directory you would like your data to be written to. Obviously this value will be ignored if using MYSQL_TABLE
+            * If on a windows machine, consider placing an "r" in front of the string.
+            * Please see [Python - Raw Strings](https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals) for more information.
+        1. OUTPUT_FILENAME - The file name you want to give your file(s) in the output directory.
+        1. OTHER_OPTIONS - Other options for your csv.
+            1. hasHeader - specify if your dataset has a header. `True` for "Yes", `False` for "No."
+            1. checkSameHeader - a sanity option for you if you want to make sure your header is consistant across all downloaded CSVs. This variable is ignored if your `hasHeaders` is set to `False`
 
-#### ArcGIS Subsection
-NYI
+#### Running
+Ideally, if the automatic output is setup correctly and you have write access to the directory you'd like to write to, and requried packages are installed, this should just run when you run the `s3_to_local.py` script.  
+
+* Command: `python3 s3_to_local.py`
+
+If you run into problems or have a question, please open an issue so I can address it and add to this read me.
+            
+
 ### R Instructions
 NYI
+
+#### ArcGIS Subsection
+This section uses the python code in the previous section to execute code. The ArcGIS tool will ask you for the information directly in the tool instead of having to deal with an environment file.

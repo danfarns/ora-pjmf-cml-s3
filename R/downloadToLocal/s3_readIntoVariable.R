@@ -6,6 +6,11 @@ library("aws.s3")
 s3_amazon_bucket <- ""
 s3_amazon_bucket_prefix <- ""
 
+#Variable to read into the global environment (at least for now)
+#you can use YOUR_GOOD_VAR_NAME <- get(csvVariableName) to pull the data into a variable of your choosing.
+csvVariableName <- "combinedCsv"
+dataHasHeaders <- TRUE
+
 
 
 Sys.setenv("AWS_ACCESS_KEY_ID" = "",
@@ -15,8 +20,21 @@ Sys.setenv("AWS_ACCESS_KEY_ID" = "",
 
 
 
-readFromS3IntoDataFrame <- function(filename, bucket, sep = ","){
-  return(s3read_using(FUN=read.csv, bucket = bucket, object=filename,sep = sep, header=T))
+
+readFromS3IntoDataFrame <- function(filename, bucket, sep = ",", dataHasHeaders = TRUE){
+  
+  if( exists(csvVariableName) == TRUE ) {
+    assign(csvVariableName, 
+           rbind( get(csvVariableName) ,s3read_using(FUN=read.csv, bucket = bucket, object=filename,sep = sep, header=dataHasHeaders) ),
+           envir = globalenv()
+    )
+  }else{
+    assign(csvVariableName, s3read_using(FUN=read.csv, bucket = bucket, object=filename,sep = sep, header=dataHasHeaders),
+           envir = globalenv() )
+  }
+  
+  
+  return(TRUE)
 }
 
 
@@ -34,11 +52,15 @@ for(bucket_info in this_bucket) {
     next;
   }
   
-  print( paste0("Csv: ", bucket_info$Key) ) 
-  x = readFromS3(bucket_info$Key, bucket_info$Bucket, sep=',') 
-  print(x)
+  #print( paste0("Csv: ", bucket_info$Key) ) 
+  readFromS3IntoDataFrame(bucket_info$Key, bucket_info$Bucket, sep=',', dataHasHeaders=dataHasHeaders) 
 }
 
+
+
+
+myCsvDataframe = get(csvVariableName)
+print(myCsvDataframe)
 
 #x= readFromS3('pjmf-ruora-data/s3-data-folder/flights.csv_output_python/', this_bucket, sep='\t')
 

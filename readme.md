@@ -9,6 +9,8 @@ This repository is used to store sample code in Python and R on how to connect t
 * Abbreviations / Short Names
     * **Cloudera Data Platform**: CDP
     * **Machine Learning Workspace**: ML Workspace
+* ArcGIS
+    * Environments: https://pro.arcgis.com/en/pro-app/latest/arcpy/get-started/what-is-conda.htm#GUID-21D59BFD-728B-41BF-8A31-9F19CA4CC82A    
 
 # Requirements
 * (Clarify_Statement) The ability to add the correct permissions or receive the correct permissions from your administrator
@@ -306,5 +308,52 @@ If you run into problems or have a question, please open an issue so I can addre
 ### R Instructions
 NYI
 
-#### ArcGIS Subsection
+### ArcGIS Instructions
 This section uses the python code in the previous section to execute code. The ArcGIS tool will ask you for the information directly in the tool instead of having to deal with an environment file.
+
+Currently only tried with ArcGIS Pro since it uses Python 3, but with enough effort, you may be able to transcribe the scripts (if a boto package is available for Python 2) to Python 2.x, but I will not be doing that.
+
+Please read a little about creating new environments here before starting the next section https://pro.arcgis.com/en/pro-app/latest/arcpy/get-started/what-is-conda.htm#GUID-21D59BFD-728B-41BF-8A31-9F19CA4CC82A  so the next set of instructions make a little more sense.
+
+
+#### Creating a new Python Environment.
+1. Open to the settings by clicking on "Settings" on the first screen or "Project" in the ribbon menu at the top of your map application.
+    * ![Settings / Package Manager](images/arcpro-conda-1.png)
+1. We will create a new environment since we are unable to modify the default environment.
+    1. Next to the "Active Environment" is a dropdown and a GEAR setting icon. Click the GEAR icon. 
+    1. On the "Environment Manager" popup window, click arcgis-pro-py3 (Default) and click the clone environment button
+        * ![clone environment button](images/arcpro-conda-2.png)
+    1. Set the Destination to a folder you have access to. I named my folder `arcgispro-py3-cdp` so I know that this environment is for AWS/CDP related scripts.
+    1. This will take a long while. Grab a coffee or snack. If it appears to freeze, just let it go. Eventually it will finish or error out.
+    1. When done, close the "Environment Manager" window and select your new environment in the "Active Envionment" Dropdown to the right.
+1. After you are in your new environment, we will install a new package, boto3 since it is required. Click "Add Packages"
+1. Type "boto3" in the search box.
+1. In the right side window, ther ewill be a Version dropdown and an install button. Install the latest version. I am will be using 1.24.28 for this guide.
+    * Some other dependancies may be downloaded so boto3 can run.
+1. Once it finishes installing we are ready to import the toolbox.
+
+##### Import the Tool in ArcPro
+Please have ArcPro opened to a fresh map or a map you want to import data from your AWS bucket into. I will starting a new project without a template.  
+
+You will also need this repository downloaded somewhere on your system.
+
+1. Click "New Map" if starting from a new template so there is a map in our project.
+1. Open the catalog panel
+    1. If you don't have a catalog panel, click "View" in the Ribbon Menu and click "Catalog Pane"
+1. Right click on "Toolboxes" and click "Add Toolbox"
+1. Navigate to where you have this repository downloaded and import the toolbox `S3 Toolbox.pty` from the `python/downloadToLocal` folder.
+    * Don't double click on the toolbox in the file selector window. Single click and click "OK", otherwise it will try to navigate inside the toolbox for some reason.
+1. Once the toolbox is added to your `Toolboxes` folder, click the arrow next to it to expand and show the tools inside. 
+    * There is one tool currently inside: `S3 to ArcGIS Data Table`
+1. Double click on that tool to open it up like you would for a normal tool.
+1. You will need to fill out the information appropriately for your settings.
+    1. Output Table Location: The hard drive location you want to store your downloaded data.
+    1. Output Table name: The output name you want to give your data.
+    1. Amazon S3 Access Key ID: your AWS S3 Access Key
+    1. Amazon S3 Secret Access Key: Your AWS S3 Secret Access Key
+    1. Bucket Name - The bucket you would like to access data from. This was created from a previous section or given to you by an administrator.
+    1. S3 Folder Location - The relative path inside if the bucket. While we could combine this field and Bucket Name to form a complete path, I have currently opted to keep it separate for consistancy's sake.
+    1. "My CSV(s) Has Headers" - Check if "Yes", Unchecked for "No"
+    1. "Enforce Same Headers Check" - a sanity option for you if you want to make sure your header is consistant across all downloaded CSVs. This variable is ignored if your "My CSV(s) Has Headers"  is unchecked
+1. If everything goes correctly, and the data downloads, it will be added as a "Standalone Table"
+    * At this point, if your data has latitude / longitude information you can run the default ArcGIS tools to plot it on the map, or you can do normal tabular joins to join shapefiles with your new table.
